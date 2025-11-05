@@ -1,0 +1,316 @@
+/* =====================================================
+   ESTILOS PARA SISTEMA DE AUTENTICACIÓN
+   Páginas: Login, Registro
+   ===================================================== */
+
+/* Contenedor principal de autenticación */
+.auth-container {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--gradient-hero);
+    padding: 2rem;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Tarjeta de autenticación */
+.auth-card {
+    background: var(--bg-card);
+    border-radius: 25px;
+    box-shadow: var(--shadow-xl);
+    max-width: 500px;
+    width: 100%;
+    padding: 3rem;
+    position: relative;
+    z-index: 2;
+    animation: slideIn 0.5s ease;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Encabezado de autenticación */
+.auth-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.auth-logo {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--gradient-primary);
+    border-radius: 50%;
+    box-shadow: var(--shadow-md);
+}
+
+.auth-logo i {
+    font-size: 2.5rem;
+    color: white;
+}
+
+.auth-header h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+}
+
+.auth-header p {
+    color: var(--text-secondary);
+    font-size: 1rem;
+}
+
+/* Formulario de autenticación */
+.auth-form {
+    margin-bottom: 2rem;
+}
+
+.auth-form .form-group {
+    margin-bottom: 1.5rem;
+}
+
+.auth-form label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+    font-size: 0.95rem;
+}
+
+.auth-form label i {
+    color: var(--primary-color);
+    font-size: 1.1rem;
+}
+
+.auth-form input {
+    width: 100%;
+    padding: 0.875rem 1rem;
+    border: 2px solid var(--border-color);
+    border-radius: 12px;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+
+.auth-form input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    background: var(--bg-card);
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+}
+
+.auth-form input::placeholder {
+    color: var(--text-secondary);
+    opacity: 0.7;
+}
+
+.auth-form small {
+    display: block;
+    margin-top: 0.5rem;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+}
+
+/* Botones */
+.btn-block {
+    width: 100%;
+    justify-content: center;
+    padding: 1rem 2rem;
+    font-size: 1.05rem;
+    margin-top: 0.5rem;
+}
+
+/* Alertas */
+.alert {
+    display: flex;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+    border-radius: 12px;
+    margin-bottom: 1.5rem;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.alert i {
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+.alert-success {
+    background: rgba(16, 185, 129, 0.1);
+    border: 2px solid var(--secondary-color);
+    color: var(--text-primary);
+}
+
+.alert-success i {
+    color: var(--secondary-color);
+}
+
+.alert-error {
+    background: rgba(239, 68, 68, 0.1);
+    border: 2px solid #ef4444;
+    color: var(--text-primary);
+}
+
+.alert-error i {
+    color: #ef4444;
+}
+
+.alert strong {
+    display: block;
+    margin-bottom: 0.25rem;
+    font-size: 1rem;
+}
+
+.alert p {
+    margin: 0.25rem 0 0;
+    font-size: 0.95rem;
+    line-height: 1.5;
+}
+
+.alert ul {
+    margin: 0.5rem 0 0;
+    padding-left: 1.25rem;
+}
+
+.alert li {
+    margin-bottom: 0.25rem;
+    font-size: 0.95rem;
+}
+
+.alert a {
+    color: var(--primary-color);
+    font-weight: 600;
+    text-decoration: underline;
+}
+
+/* Footer de autenticación */
+.auth-footer {
+    text-align: center;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.auth-footer p {
+    margin-bottom: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.auth-footer a {
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: 600;
+    transition: color 0.3s ease;
+}
+
+.auth-footer a:hover {
+    color: var(--primary-dark);
+    text-decoration: underline;
+}
+
+
+
+/* Botones en navbar para login */
+.btn-nav-login, .btn-nav-logout {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: var(--gradient-primary);
+    color: white;
+    border-radius: 25px;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+    box-shadow: var(--shadow-sm);
+}
+
+.btn-nav-login:hover, .btn-nav-logout:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.btn-nav-logout {
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    justify-content: center;
+    border-radius: 50%;
+}
+
+.user-greeting {
+    color: var(--text-primary);
+    font-weight: 500;
+    font-size: 0.95rem;
+}
+
+.nav-link-special {
+    color: var(--primary-color) !important;
+    font-weight: 600;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .auth-card {
+        padding: 2rem;
+        margin: 1rem;
+    }
+
+    .auth-header h1 {
+        font-size: 1.75rem;
+    }
+
+    .auth-logo {
+        width: 70px;
+        height: 70px;
+    }
+
+    .auth-logo i {
+        font-size: 2rem;
+    }
+
+    .decoration-circle {
+        opacity: 0.5;
+    }
+
+    .user-greeting {
+        display: none;
+    }
+}
+
+@media (max-width: 480px) {
+    .auth-container {
+        padding: 1rem;
+    }
+
+    .auth-card {
+        padding: 1.5rem;
+    }
+
+    .demo-accounts {
+        grid-template-columns: 1fr;
+    }
+}
