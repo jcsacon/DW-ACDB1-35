@@ -17,22 +17,67 @@ if (estaAutenticado()) {
 $errores = [];
 $correo_ingresado = '';
 
+// --- INICIO: Lógica de control de intentos de login y bloqueo ---
+define('MAX_LOGIN_ATTEMPTS', 5);
+define('LOCKOUT_TIME_SECONDS', 60);
+define('SHOW_CAPTCHA_ATTEMPTS', 3);
+
+// Función para manejar el fallo de login
+function manejarFalloLogin(&$errores) {
+    if (!isset($_SESSION['login_attempts'])) {
+        $_SESSION['login_attempts'] = 1;
+    } else {
+        $_SESSION['login_attempts']++;
+    }
+
+    if ($_SESSION['login_attempts'] >= MAX_LOGIN_ATTEMPTS) {
+        $_SESSION['lockout_time'] = time() + LOCKOUT_TIME_SECONDS;
+        $errores[] = "Has excedido el número de intentos. Tu cuenta ha sido bloqueada por " . LOCKOUT_TIME_SECONDS . " segundos.";
+        unset($_SESSION['login_attempts']); // Limpiar para el próximo ciclo de bloqueo
+        unset($_SESSION['captcha_question']);
+        unset($_SESSION['captcha_answer']);
+    } else {
+        $intentos_restantes = MAX_LOGIN_ATTEMPTS - $_SESSION['login_attempts'];
+        $errores[] = "Credenciales incorrectas. Te quedan {$intentos_restantes} intentos.";
+    }
+}
+
+// Verificar si el usuario está bloqueado
+if (isset($_SESSION['lockout_time']) && $_SESSION['lockout_time'] > time()) {
+    $tiempo_restante = $_SESSION['lockout_time'] - time();
+    $errores[] = "Has excedido el número de intentos. Por favor, espera {$tiempo_restante} segundos antes de volver a intentarlo.";
+}
+// --- FIN: Lógica de control de intentos de login y bloqueo ---
+
 // Procesar formulario de login
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && (!isset($_SESSION['lockout_time']) || $_SESSION['lockout_time'] <= time())) {
+    // Si el bloqueo ha expirado, limpiar las variables
+    if (isset($_SESSION['lockout_time']) && $_SESSION['lockout_time'] <= time()) {
+        unset($_SESSION['lockout_time']);
+        unset($_SESSION['login_attempts']);
+        unset($_SESSION['captcha_question']);
+        unset($_SESSION['captcha_answer']);
+    }
+
     $correo = sanitizar($_POST['correo'] ?? '');
     $contrasena = $_POST['contrasena'] ?? '';
     $correo_ingresado = $correo;
     
     // Validaciones básicas
-    if (empty($correo)) {
-        $errores[] = "El correo electrónico es obligatorio";
-    }
+    if (empty($correo)) $errores[] = "El correo electrónico es obligatorio";
+    if (empty($contrasena)) $errores[] = "La contraseña es obligatoria";
     
-    if (empty($contrasena)) {
-        $errores[] = "La contraseña es obligatoria";
+    // --- INICIO: Validación de Captcha ---
+    $mostrar_captcha_post = isset($_SESSION['login_attempts']) && $_SESSION['login_attempts'] >= SHOW_CAPTCHA_ATTEMPTS;
+    if ($mostrar_captcha_post) {
+        $captcha_ingresado = $_POST['captcha'] ?? '';
+        if (empty($captcha_ingresado) || !isset($_SESSION['captcha_answer']) || (int)$captcha_ingresado !== $_SESSION['captcha_answer']) {
+            $errores[] = "El resultado de la operación matemática es incorrecto.";
+        }
     }
-    
-    // Si no hay errores, verificar credenciales
+    // --- FIN: Validación de Captcha ---
+
+    // Si no hay errores de validación, verificar credenciales
     if (empty($errores)) {
         try {
             $db = getDB();
@@ -40,21 +85,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->execute([$correo]);
             $usuario = $stmt->fetch();
             
-            if ($usuario) {
-                // Verificar estado del usuario
-                if ($usuario['estado'] !== 'activo') {
-                    $errores[] = "Esta cuenta está inactiva. Contacta al administrador.";
-                }
-                // Verificar contraseña
-                elseif (password_verify($contrasena, $usuario['contrasena'])) {
-                    // Login exitoso
-                    iniciarSesionUsuario($usuario);
-                    redireccionar('protected/dashboard.php');
-                } else {
-                    $errores[] = "Credenciales incorrectas. Por favor verifica tu correo y contraseña e intenta nuevamente.";
-                }
+            if ($usuario && $usuario['estado'] === 'activo' && password_verify($contrasena, $usuario['contrasena'])) {
+                // Login exitoso
+                unset($_SESSION['login_attempts']);
+                unset($_SESSION['lockout_time']);
+                unset($_SESSION['captcha_question']);
+                unset($_SESSION['captcha_answer']);
+                iniciarSesionUsuario($usuario);
+                redireccionar('protected/dashboard.php');
             } else {
-                $errores[] = "Credenciales incorrectas. Por favor verifica tu correo y contraseña e intenta nuevamente.";
+                if ($usuario && $usuario['estado'] !== 'activo') {
+                     $errores[] = "Esta cuenta está inactiva. Contacta al administrador.";
+                } else {
+                    manejarFalloLogin($errores);
+                }
             }
         } catch(PDOException $e) {
             error_log("Error en login: " . $e->getMessage());
@@ -62,6 +106,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 }
+
+// --- INICIO: Lógica para mostrar Captcha ---
+$mostrar_captcha = isset($_SESSION['login_attempts']) && $_SESSION['login_attempts'] >= SHOW_CAPTCHA_ATTEMPTS;
+
+// Generar problema de captcha si es necesario y no existe
+if ($mostrar_captcha && !isset($_SESSION['captcha_question'])) {
+    $num1 = rand(1, 10);
+    $num2 = rand(1, 10);
+    $operator = rand(0, 1) ? '+' : '-';
+
+    if ($operator === '-' && $num1 < $num2) {
+        // Asegurar que el resultado no sea negativo
+        list($num1, $num2) = [$num2, $num1];
+    }
+
+    $_SESSION['captcha_question'] = "{$num1} {$operator} {$num2} = ?";
+    $_SESSION['captcha_answer'] = ($operator === '+') ? ($num1 + $num2) : ($num1 - $num2);
+}
+
+// Limpiar captcha si ya no se necesita
+if (!$mostrar_captcha && isset($_SESSION['captcha_question'])) {
+    unset($_SESSION['captcha_question']);
+    unset($_SESSION['captcha_answer']);
+}
+// --- FIN: Lógica para mostrar Captcha ---
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -129,6 +198,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         required
                     >
                 </div>
+
+                <?php if ($mostrar_captcha): ?>
+                <div class="form-group captcha-group">
+                    <label for="captcha">
+                        <i class="fas fa-shield-alt"></i>
+                        Verificación de seguridad: Resuelve la operación
+                    </label>
+                    <div class="captcha-container">
+                        <span class="captcha-text"><?php echo htmlspecialchars($_SESSION['captcha_question']); ?></span>
+                        <input
+                            type="text"
+                            id="captcha"
+                            name="captcha"
+                            placeholder="Resultado"
+                            required
+                            pattern="\d{1,2}"
+                            title="Ingresa el resultado de la operación."
+                        >
+                    </div>
+                </div>
+                <?php endif; ?>
 
                 <button type="submit" class="btn btn-primary btn-block">
                     <i class="fas fa-sign-in-alt"></i>

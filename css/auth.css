@@ -272,6 +272,31 @@
     font-weight: 600;
 }
 
+/* --- ESTILOS PARA CAPTCHA --- */
+.captcha-group .captcha-container {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.captcha-group .captcha-text {
+    padding: 0.875rem 1rem;
+    border: 2px solid var(--border-color);
+    border-radius: 12px;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    font-size: 1.1rem;
+    font-weight: 600;
+    letter-spacing: 2px;
+    user-select: none;
+    flex-shrink: 0;
+}
+
+.captcha-group input {
+    flex-grow: 1;
+}
+/* --- FIN ESTILOS PARA CAPTCHA --- */
+
 /* Responsive */
 @media (max-width: 768px) {
     .auth-card {
