@@ -18,9 +18,10 @@ $errores = [];
 $correo_ingresado = '';
 
 // --- INICIO: Lógica de control de intentos de login y bloqueo ---
+require_once 'captcha.php';
+
 define('MAX_LOGIN_ATTEMPTS', 5);
 define('LOCKOUT_TIME_SECONDS', 60);
-define('SHOW_CAPTCHA_ATTEMPTS', 3);
 
 // Función para manejar el fallo de login
 function manejarFalloLogin(&$errores) {
@@ -34,8 +35,7 @@ function manejarFalloLogin(&$errores) {
         $_SESSION['lockout_time'] = time() + LOCKOUT_TIME_SECONDS;
         $errores[] = "Has excedido el número de intentos. Tu cuenta ha sido bloqueada por " . LOCKOUT_TIME_SECONDS . " segundos.";
         unset($_SESSION['login_attempts']); // Limpiar para el próximo ciclo de bloqueo
-        unset($_SESSION['captcha_question']);
-        unset($_SESSION['captcha_answer']);
+        limpiarCaptcha();
     } else {
         $intentos_restantes = MAX_LOGIN_ATTEMPTS - $_SESSION['login_attempts'];
         $errores[] = "Credenciales incorrectas. Te quedan {$intentos_restantes} intentos.";
@@ -67,15 +67,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (!isset($_SESSION['lockout_time']) 
     if (empty($correo)) $errores[] = "El correo electrónico es obligatorio";
     if (empty($contrasena)) $errores[] = "La contraseña es obligatoria";
     
-    // --- INICIO: Validación de Captcha ---
-    $mostrar_captcha_post = isset($_SESSION['login_attempts']) && $_SESSION['login_attempts'] >= SHOW_CAPTCHA_ATTEMPTS;
-    if ($mostrar_captcha_post) {
+    // Validación de Captcha
+    if (debeMostrarCaptcha()) {
         $captcha_ingresado = $_POST['captcha'] ?? '';
-        if (empty($captcha_ingresado) || !isset($_SESSION['captcha_answer']) || (int)$captcha_ingresado !== $_SESSION['captcha_answer']) {
+        if (!verificarCaptcha($captcha_ingresado)) {
             $errores[] = "El resultado de la operación matemática es incorrecto.";
         }
     }
-    // --- FIN: Validación de Captcha ---
 
     // Si no hay errores de validación, verificar credenciales
     if (empty($errores)) {
@@ -89,8 +87,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (!isset($_SESSION['lockout_time']) 
                 // Login exitoso
                 unset($_SESSION['login_attempts']);
                 unset($_SESSION['lockout_time']);
-                unset($_SESSION['captcha_question']);
-                unset($_SESSION['captcha_answer']);
+                limpiarCaptcha();
                 iniciarSesionUsuario($usuario);
                 redireccionar('protected/dashboard.php');
             } else {
@@ -107,30 +104,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (!isset($_SESSION['lockout_time']) 
     }
 }
 
-// --- INICIO: Lógica para mostrar Captcha ---
-$mostrar_captcha = isset($_SESSION['login_attempts']) && $_SESSION['login_attempts'] >= SHOW_CAPTCHA_ATTEMPTS;
-
-// Generar problema de captcha si es necesario y no existe
-if ($mostrar_captcha && !isset($_SESSION['captcha_question'])) {
-    $num1 = rand(1, 10);
-    $num2 = rand(1, 10);
-    $operator = rand(0, 1) ? '+' : '-';
-
-    if ($operator === '-' && $num1 < $num2) {
-        // Asegurar que el resultado no sea negativo
-        list($num1, $num2) = [$num2, $num1];
-    }
-
-    $_SESSION['captcha_question'] = "{$num1} {$operator} {$num2} = ?";
-    $_SESSION['captcha_answer'] = ($operator === '+') ? ($num1 + $num2) : ($num1 - $num2);
-}
-
-// Limpiar captcha si ya no se necesita
-if (!$mostrar_captcha && isset($_SESSION['captcha_question'])) {
-    unset($_SESSION['captcha_question']);
-    unset($_SESSION['captcha_answer']);
-}
-// --- FIN: Lógica para mostrar Captcha ---
+// Manejar la lógica del CAPTCHA
+$mostrar_captcha = debeMostrarCaptcha();
+manejarCaptcha();
 ?>
 <!DOCTYPE html>
 <html lang="es">
