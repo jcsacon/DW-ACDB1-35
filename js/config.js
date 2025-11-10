@@ -10,14 +10,14 @@ const CONFIG = {
         CHECK_INTERVAL: 10000    // Verificar cada 10 segundos
     },
 
-    // Valores de validación
+    // Valores de validación de formularios de autenticación
     VALIDATION: {
         MIN_NAME_LENGTH: 3,
         MIN_PASSWORD_LENGTH: 6,
         EMAIL_REGEX: /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     },
 
-    // Rutas del sistema
+    // Rutas del sistema para redirecciones de autenticación
     ROUTES: {
         LOGOUT: '../auth/logout.php',
         LOGIN: '../index.php',
@@ -31,6 +31,6 @@ const CONFIG = {
     }
 };
 
-Object.freeze(CONFIG); // Hacer inmutable la configuración
+Object.freeze(CONFIG); // Hacer inmutable la configuración global
 
 console.log('⚙️ Configuración del sistema cargada correctamente');

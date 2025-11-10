@@ -46,7 +46,7 @@ function verificarCaptcha($captcha_ingresado) {
     if (!debeMostrarCaptcha()) {
         return true;
     }
-
+    // Verificar si el CAPTCHA es correcto
     return !empty($captcha_ingresado) && 
            isset($_SESSION["captcha_answer"]) && 
            (int)$captcha_ingresado === $_SESSION["captcha_answer"];

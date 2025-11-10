@@ -16,25 +16,27 @@ $errores = [];
 $mensaje = '';
 
 // Obtener todos los usuarios
-try {
-    $db = getDB();
-    $stmt = $db->query("SELECT id, nombre, correo, rol, estado, fecha_registro, ultimo_acceso FROM usuarios ORDER BY id DESC");
-    $usuarios = $stmt->fetchAll();
-    
-    // Estadísticas
-    $stmt = $db->query("SELECT COUNT(*) as total FROM usuarios");
-    $totalUsuarios = $stmt->fetch()['total'];
-    
-    $stmt = $db->query("SELECT COUNT(*) as total FROM usuarios WHERE estado = 'activo'");
-    $usuariosActivos = $stmt->fetch()['total'];
-    
-    $stmt = $db->query("SELECT COUNT(*) as total FROM usuarios WHERE rol = 'administrador'");
-    $administradores = $stmt->fetch()['total'];
-    
-} catch(PDOException $e) {
-    error_log("Error al obtener usuarios: " . $e->getMessage());
+$conexion = conectarDB();
+
+// Obtener lista de usuarios
+$query = "SELECT id, nombre, correo, rol, estado, fecha_registro, ultimo_acceso FROM usuarios ORDER BY id DESC";
+$result = mysqli_query($conexion, $query);
+if (!$result) {
+    error_log("Error al obtener usuarios: " . mysqli_error($conexion));
     $errores[] = "Error al cargar los usuarios";
+} else {
+    $usuarios = mysqli_fetch_all($result, MYSQLI_ASSOC);
 }
+
+// Estadísticas
+$result = mysqli_query($conexion, "SELECT COUNT(*) as total FROM usuarios");
+$totalUsuarios = mysqli_fetch_assoc($result)['total'];
+
+$result = mysqli_query($conexion, "SELECT COUNT(*) as total FROM usuarios WHERE estado = 'activo'");
+$usuariosActivos = mysqli_fetch_assoc($result)['total'];
+
+$result = mysqli_query($conexion, "SELECT COUNT(*) as total FROM usuarios WHERE rol = 'administrador'");
+$administradores = mysqli_fetch_assoc($result)['total'];
 
 // Cambiar estado de usuario
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cambiar_estado'])) {
@@ -44,17 +46,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cambiar_estado'])) {
     if ($usuarioId === obtenerUsuarioId()) {
         $errores[] = "No puedes cambiar tu propio estado";
     } else {
-        try {
-            $stmt = $db->prepare("UPDATE usuarios SET estado = ? WHERE id = ?");
-            if ($stmt->execute([$nuevoEstado, $usuarioId])) {
-                $exito = true;
-                $mensaje = "Estado del usuario actualizado correctamente";
-                // Recargar usuarios
-                header("Location: admin.php?success=1");
-                exit();
-            }
-        } catch(PDOException $e) {
-            error_log("Error al cambiar estado: " . $e->getMessage());
+        $conexion = conectarDB();
+        
+        $usuarioId_escaped = mysqli_real_escape_string($conexion, $usuarioId);
+        $nuevoEstado_escaped = mysqli_real_escape_string($conexion, $nuevoEstado);
+        
+        $query = "UPDATE usuarios SET estado = '$nuevoEstado_escaped' WHERE id = '$usuarioId_escaped'";
+        if (mysqli_query($conexion, $query)) {
+            $exito = true;
+            $mensaje = "Estado del usuario actualizado correctamente";
+            header("Location: admin.php?success=1");
+            exit();
+        } else {
+            error_log("Error al cambiar estado: " . mysqli_error($conexion));
             $errores[] = "Error al cambiar el estado del usuario";
         }
     }
@@ -68,16 +72,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cambiar_rol'])) {
     if ($usuarioId === obtenerUsuarioId()) {
         $errores[] = "No puedes cambiar tu propio rol";
     } else {
-        try {
-            $stmt = $db->prepare("UPDATE usuarios SET rol = ? WHERE id = ?");
-            if ($stmt->execute([$nuevoRol, $usuarioId])) {
-                $exito = true;
-                $mensaje = "Rol del usuario actualizado correctamente";
-                header("Location: admin.php?success=2");
-                exit();
-            }
-        } catch(PDOException $e) {
-            error_log("Error al cambiar rol: " . $e->getMessage());
+        $conexion = conectarDB();
+        
+        $usuarioId_escaped = mysqli_real_escape_string($conexion, $usuarioId);
+        $nuevoRol_escaped = mysqli_real_escape_string($conexion, $nuevoRol);
+        
+        $query = "UPDATE usuarios SET rol = '$nuevoRol_escaped' WHERE id = '$usuarioId_escaped'";
+        if (mysqli_query($conexion, $query)) {
+            $exito = true;
+            $mensaje = "Rol del usuario actualizado correctamente";
+            header("Location: admin.php?success=2");
+            exit();
+        } else {
+            error_log("Error al cambiar rol: " . mysqli_error($conexion));
             $errores[] = "Error al cambiar el rol del usuario";
         }
     }
@@ -90,16 +97,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['eliminar_usuario'])) 
     if ($usuarioId === obtenerUsuarioId()) {
         $errores[] = "No puedes eliminar tu propia cuenta";
     } else {
-        try {
-            $stmt = $db->prepare("DELETE FROM usuarios WHERE id = ?");
-            if ($stmt->execute([$usuarioId])) {
-                $exito = true;
-                $mensaje = "Usuario eliminado correctamente";
-                header("Location: admin.php?success=3");
-                exit();
-            }
-        } catch(PDOException $e) {
-            error_log("Error al eliminar usuario: " . $e->getMessage());
+        $conexion = conectarDB();
+        
+        $usuarioId_escaped = mysqli_real_escape_string($conexion, $usuarioId);
+        
+        $query = "DELETE FROM usuarios WHERE id = '$usuarioId_escaped'";
+        if (mysqli_query($conexion, $query)) {
+            $exito = true;
+            $mensaje = "Usuario eliminado correctamente";
+            header("Location: admin.php?success=3");
+            exit();
+        } else {
+            error_log("Error al eliminar usuario: " . mysqli_error($conexion));
             $errores[] = "Error al eliminar el usuario";
         }
     }
@@ -123,6 +132,7 @@ if (isset($_GET['success'])) {
     <title>Administración - Sistema</title>
     <link rel="stylesheet" href="../css/styles.css">
     <link rel="stylesheet" href="../css/dashboard.css">
+    <link rel="stylesheet" href="../css/admin.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
@@ -207,7 +217,7 @@ if (isset($_GET['success'])) {
                         <p class="card-label">Usuarios registrados</p>
                     </div>
                 </div>
-
+                
                 <div class="info-card">
                     <div class="card-icon" style="background: linear-gradient(135deg, #10b981, #059669);">
                         <i class="fas fa-check-circle"></i>
@@ -307,111 +317,7 @@ if (isset($_GET['success'])) {
             </div>
         </div>
     </div>
-
-    <style>
-        .table-responsive {
-            overflow-x: auto;
-            margin-top: 1rem;
-        }
-
-        .users-table {
-            width: 100%;
-            border-collapse: collapse;
-            background: var(--bg-card);
-        }
-
-        .users-table th {
-            background: var(--bg-secondary);
-            padding: 1rem;
-            text-align: left;
-            font-weight: 600;
-            color: var(--text-primary);
-            border-bottom: 2px solid var(--border-color);
-        }
-
-        .users-table td {
-            padding: 1rem;
-            border-bottom: 1px solid var(--border-color);
-            color: var(--text-primary);
-        }
-
-        .users-table tr:hover {
-            background: var(--bg-secondary);
-        }
-
-        .badge {
-            display: inline-block;
-            padding: 0.25rem 0.75rem;
-            border-radius: 20px;
-            font-size: 0.875rem;
-            font-weight: 600;
-        }
-
-        .badge-admin {
-            background: rgba(139, 92, 246, 0.1);
-            color: #8b5cf6;
-        }
-
-        .badge-user {
-            background: rgba(59, 130, 246, 0.1);
-            color: #3b82f6;
-        }
-
-        .badge-active {
-            background: rgba(16, 185, 129, 0.1);
-            color: #10b981;
-        }
-
-        .badge-inactive {
-            background: rgba(239, 68, 68, 0.1);
-            color: #ef4444;
-        }
-
-        .badge-info {
-            background: rgba(59, 130, 246, 0.1);
-            color: #3b82f6;
-        }
-
-        .actions-cell {
-            white-space: nowrap;
-        }
-
-        .btn-icon {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 36px;
-            height: 36px;
-            border: none;
-            border-radius: 8px;
-            background: var(--bg-secondary);
-            color: var(--text-primary);
-            cursor: pointer;
-            transition: all 0.3s ease;
-            margin: 0 0.25rem;
-        }
-
-        .btn-icon:hover {
-            background: var(--primary-color);
-            color: white;
-            transform: translateY(-2px);
-        }
-
-        .btn-danger:hover {
-            background: #ef4444;
-        }
-
-        @media (max-width: 768px) {
-            .users-table {
-                font-size: 0.875rem;
-            }
-
-            .users-table th, .users-table td {
-                padding: 0.75rem 0.5rem;
-            }
-        }
-    </style>
-
+    <!-- llamados de js para el dashboard -->
     <script src="../js/config.js"></script>
     <script src="../js/notifications.js"></script>
     <script src="../js/theme.js"></script>

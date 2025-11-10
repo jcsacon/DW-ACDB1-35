@@ -1,7 +1,6 @@
 <?php
 /**
  * Página de Registro de Usuarios
- * Sistema de Autenticación
  */
 
 require_once '../config/database.php';
@@ -31,7 +30,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif (strlen($nombre) < 3) {
         $errores[] = "El nombre debe tener al menos 3 caracteres";
     }
-    
+
     if (empty($correo)) {
         $errores[] = "El correo electrónico es obligatorio";
     } elseif (!validarCorreo($correo)) {
@@ -50,41 +49,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     // Si no hay errores, proceder con el registro
     if (empty($errores)) {
-        try {
-            $db = getDB();
+        $conexion = conectarDB();
+        
+        $nombre_escaped = mysqli_real_escape_string($conexion, $nombre);
+        $correo_escaped = mysqli_real_escape_string($conexion, $correo);
+        
+        // Verificar si el correo ya existe
+        $query = "SELECT id FROM usuarios WHERE correo = '$correo_escaped'";
+        $result = mysqli_query($conexion, $query);
+        
+        if (mysqli_num_rows($result) > 0) {
+            $errores[] = "El correo electrónico ya está registrado";
+        } else {
+            // Hash de la contraseña
+            $contrasena_hash = password_hash($contrasena, PASSWORD_DEFAULT);
+            $contrasena_hash_escaped = mysqli_real_escape_string($conexion, $contrasena_hash);
             
-            // Verificar si el correo ya existe
-            $stmt = $db->prepare("SELECT id FROM usuarios WHERE correo = ?");
-            $stmt->execute([$correo]);
+            // Insertar nuevo usuario
+            $query = "INSERT INTO usuarios (nombre, correo, contrasena, rol) VALUES ('$nombre_escaped', '$correo_escaped', '$contrasena_hash_escaped', 'usuario')";
             
-            if ($stmt->fetch()) {
-                $errores[] = "El correo electrónico ya está registrado";
+            if (mysqli_query($conexion, $query)) {
+                $exito = true;
             } else {
-                // Hash de la contraseña
-                $contrasena_hash = password_hash($contrasena, HASH_ALGORITHM, ['cost' => HASH_COST]);
-                
-                // Insertar nuevo usuario
-                $stmt = $db->prepare("INSERT INTO usuarios (nombre, correo, contrasena, rol) VALUES (?, ?, ?, 'usuario')");
-                
-                if ($stmt->execute([$nombre, $correo, $contrasena_hash])) {
-                    $exito = true;
-                } else {
-                    $errores[] = "Error al registrar el usuario. Intente nuevamente.";
-                }
+                error_log("Error en registro: " . mysqli_error($conexion));
+                $errores[] = "Error al registrar el usuario. Intente nuevamente.";
             }
-        } catch(PDOException $e) {
-            error_log("Error en registro: " . $e->getMessage());
-            $errores[] = "Error en el servidor. Por favor, intente más tarde.";
         }
     }
 }
+// Mostrar formulario de registro
 ?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Registro - Portafolio</title>
+    <title>Registro - Login</title>
     <link rel="stylesheet" href="../css/styles.css">
     <link rel="stylesheet" href="../css/auth.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
@@ -100,7 +100,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <h1>Crear Cuenta</h1>
                 <p>Completa el formulario para registrarte</p>
             </div>
-
+            <! -- Mostrar mensaje de éxito -->
             <?php if ($exito): ?>
                 <div class="alert alert-success">
                     <i class="fas fa-check-circle"></i>
@@ -110,7 +110,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
                 </div>
             <?php endif; ?>
-
+            <! -- Mostrar errores en caso de haberlos en el registro -->
             <?php if (!empty($errores)): ?>
                 <div class="alert alert-error">
                     <i class="fas fa-exclamation-circle"></i>
@@ -124,7 +124,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
                 </div>
             <?php endif; ?>
-
+            <! -- Formulario de registro -->
             <?php if (!$exito): ?>
                 <form method="POST" action="" class="auth-form">
                     <div class="form-group">
@@ -198,14 +198,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <p><a href="../index.php"><i class="fas fa-home"></i> Volver al inicio</a></p>
             </div>
         </div>
-
-        <div class="auth-decoration">
-            <div class="decoration-circle decoration-circle-1"></div>
-            <div class="decoration-circle decoration-circle-2"></div>
-            <div class="decoration-circle decoration-circle-3"></div>
-        </div>
     </div>
-
+    <! -- Scripts -->
     <script src="../js/config.js"></script>
     <script src="../js/notifications.js"></script>
     <script src="../js/auth.js"></script>

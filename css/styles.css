@@ -1,4 +1,7 @@
-
+/* =====================================================
+   ESTILOS PARA SISTEMA DE AUTENTICACIÓN
+   Páginas: Login, Registro, dashboard
+   ===================================================== */
 /* Reset y variables CSS */
 * {
     margin: 0;
@@ -27,7 +30,7 @@
     --gradient-hero: linear-gradient(135deg, #3b82f6 0%, #10b981 50%, #f59e0b 100%);
 }
 
-/* Dark theme variables */
+/* Variables del tema oscuro */
 [data-theme="dark"] {
     --text-primary: #f9fafb;
     --text-secondary: #d1d5db;

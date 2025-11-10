@@ -35,6 +35,7 @@ La estructura del sistema es la siguiente:
 │   ├── database.php       # Configuración de base de datos
 │   └── sesion.php        # Gestión de sesiones
 ├── css/                   # Estilos CSS
+│   ├── admin.css         # Estilos para panel de administración
 │   ├── auth.css          # Estilos para autenticación
 │   ├── dashboard.css     # Estilos para panel de control
 │   └── styles.css        # Estilos globales

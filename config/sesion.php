@@ -1,18 +1,12 @@
 <?php
 
 /**
- * Iniciar sesión segura
+ * Iniciar sesión
  */
 function iniciarSesionSegura() {
     if (session_status() === PHP_SESSION_NONE) {
-        // Configuración de seguridad para cookies de sesión
-        ini_set('session.cookie_httponly', 1);
-        ini_set('session.use_only_cookies', 1);
-        ini_set('session.cookie_secure', 0); // Cambiar a 1 si se usa HTTPS
-        
         session_name(SESSION_NAME);
         session_start();
-        
         // Regenerar ID de sesión para prevenir fijación de sesión
         if (!isset($_SESSION['iniciada'])) {
             session_regenerate_id(true);
@@ -23,7 +17,6 @@ function iniciarSesionSegura() {
 
 /**
  * Verificar si el usuario está autenticado
- * 
  * @return bool
  */
 function estaAutenticado() {
@@ -32,7 +25,6 @@ function estaAutenticado() {
 
 /**
  * Obtener ID del usuario actual
- * 
  * @return int|null
  */
 function obtenerUsuarioId() {
@@ -41,7 +33,6 @@ function obtenerUsuarioId() {
 
 /**
  * Obtener nombre del usuario actual
- * 
  * @return string|null
  */
 function obtenerUsuarioNombre() {
@@ -50,7 +41,6 @@ function obtenerUsuarioNombre() {
 
 /**
  * Obtener correo del usuario actual
- * 
  * @return string|null
  */
 function obtenerUsuarioCorreo() {
@@ -59,7 +49,6 @@ function obtenerUsuarioCorreo() {
 
 /**
  * Obtener rol del usuario actual
- * 
  * @return string|null
  */
 function obtenerUsuarioRol() {
@@ -68,7 +57,6 @@ function obtenerUsuarioRol() {
 
 /**
  * Verificar si el usuario es administrador
- * 
  * @return bool
  */
 function esAdministrador() {
@@ -77,7 +65,6 @@ function esAdministrador() {
 
 /**
  * Iniciar sesión de usuario
- * 
  * @param array $usuario - Datos del usuario
  */
 function iniciarSesionUsuario($usuario) {
@@ -103,7 +90,6 @@ function cerrarSesion() {
         if (isset($_COOKIE[session_name()])) {
             setcookie(session_name(), '', time() - 3600, '/');
         }
-        
         // Destruir sesión
         session_destroy();
     }
@@ -111,13 +97,12 @@ function cerrarSesion() {
 
 /**
  * Verificar expiración de sesión
- * 
  * @return bool
  */
 function verificarExpiracionSesion() {
     if (isset($_SESSION['tiempo_inicio'])) {
         $tiempoTranscurrido = time() - $_SESSION['tiempo_inicio'];
-        
+        // Verificar si ha excedido el tiempo de vida de la sesión
         if ($tiempoTranscurrido > SESSION_LIFETIME) {
             cerrarSesion();
             return true;
@@ -128,7 +113,6 @@ function verificarExpiracionSesion() {
 
 /**
  * Requerir autenticación (proteger páginas)
- * 
  * @param string $redireccion - URL a redireccionar si no está autenticado
  */
 function requerirAutenticacion($redireccion = '../index.php') {
@@ -139,7 +123,6 @@ function requerirAutenticacion($redireccion = '../index.php') {
 
 /**
  * Requerir rol de administrador
- * 
  * @param string $redireccion - URL a redireccionar si no es admin
  */
 function requerirAdmin($redireccion = '../protected/dashboard.php') {
@@ -152,44 +135,21 @@ function requerirAdmin($redireccion = '../protected/dashboard.php') {
 
 /**
  * Actualizar último acceso del usuario
- * 
  * @param int $usuarioId
  */
 function actualizarUltimoAcceso($usuarioId) {
-    try {
-        $db = getDB();
-        $stmt = $db->prepare("UPDATE usuarios SET ultimo_acceso = NOW() WHERE id = ?");
-        $stmt->execute([$usuarioId]);
-    } catch(PDOException $e) {
-        error_log("Error al actualizar último acceso: " . $e->getMessage());
+    $conexion = conectarDB();
+    
+    $usuarioId_escaped = mysqli_real_escape_string($conexion, $usuarioId);
+    $query = "UPDATE usuarios SET ultimo_acceso = NOW() WHERE id = '$usuarioId_escaped'";
+    
+    if (!mysqli_query($conexion, $query)) {
+        error_log("Error al actualizar último acceso: " . mysqli_error($conexion));
     }
-}
-
-/**
- * Generar token CSRF
- * 
- * @return string
- */
-function generarTokenCSRF() {
-    if (!isset($_SESSION['csrf_token'])) {
-        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-    }
-    return $_SESSION['csrf_token'];
-}
-
-/**
- * Verificar token CSRF
- * 
- * @param string $token
- * @return bool
- */
-function verificarTokenCSRF($token) {
-    return isset($_SESSION['csrf_token']) && hash_equals($_SESSION['csrf_token'], $token);
 }
 
 /**
  * Obtener información completa del usuario actual
- * 
  * @return array|null
  */
 function obtenerUsuarioActual() {
@@ -197,15 +157,18 @@ function obtenerUsuarioActual() {
         return null;
     }
     
-    try {
-        $db = getDB();
-        $stmt = $db->prepare("SELECT id, nombre, correo, rol, fecha_registro, ultimo_acceso FROM usuarios WHERE id = ? AND estado = 'activo'");
-        $stmt->execute([obtenerUsuarioId()]);
-        return $stmt->fetch();
-    } catch(PDOException $e) {
-        error_log("Error al obtener usuario actual: " . $e->getMessage());
+    $conexion = conectarDB();
+    
+    $usuarioId = obtenerUsuarioId();
+    $usuarioId_escaped = mysqli_real_escape_string($conexion, $usuarioId);
+    // Obtener datos del usuario desde la base de datos
+    $query = "SELECT id, nombre, correo, rol, fecha_registro, ultimo_acceso FROM usuarios WHERE id = '$usuarioId_escaped' AND estado = 'activo'";
+    $result = mysqli_query($conexion, $query);
+    
+    if (!$result) {
+        error_log("Error al obtener usuario actual: " . mysqli_error($conexion));
         return null;
     }
+    return mysqli_fetch_assoc($result);
 }
-
 ?>

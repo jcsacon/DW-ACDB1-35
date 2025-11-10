@@ -2,6 +2,7 @@
  * JavaScript para Páginas de Autenticación
  * Login y Registro
  */
+// Animación de entrada y validaciones de formulario
 
 document.addEventListener('DOMContentLoaded', () => {
     // Animación de entrada para la tarjeta de autenticación
@@ -117,7 +118,7 @@ function limpiarError(input) {
  */
 function calcularFuerzaContrasena(password) {
     let fuerza = 0;
-    
+    // Criterios de fuerza si la contraseña es mayor o igual a 6 caracteres
     if (password.length >= 6) fuerza++;
     if (password.length >= 10) fuerza++;
     if (/[a-z]/.test(password) && /[A-Z]/.test(password)) fuerza++;
@@ -125,54 +126,6 @@ function calcularFuerzaContrasena(password) {
     if (/[^a-zA-Z0-9]/.test(password)) fuerza++;
     
     return fuerza;
-}
-
-/**
- * Mostrar indicador de fuerza de contraseña
- */
-function mostrarFuerzaContrasena(input, fuerza) {
-    let indicador = input.parentElement.querySelector('.fuerza-contrasena');
-    
-    if (!indicador) {
-        indicador = document.createElement('div');
-        indicador.className = 'fuerza-contrasena';
-        indicador.style.cssText = `
-            margin-top: 0.5rem;
-            display: flex;
-            gap: 0.25rem;
-        `;
-        input.parentElement.appendChild(indicador);
-    }
-    
-    indicador.innerHTML = '';
-    
-    const colores = ['#ef4444', '#f59e0b', '#10b981'];
-    const etiquetas = ['Débil', 'Media', 'Fuerte'];
-    const nivel = Math.min(Math.floor(fuerza / 2), 2);
-    
-    for (let i = 0; i < 3; i++) {
-        const barra = document.createElement('div');
-        barra.style.cssText = `
-            flex: 1;
-            height: 4px;
-            background: ${i <= nivel ? colores[nivel] : '#e5e7eb'};
-            border-radius: 2px;
-            transition: background 0.3s ease;
-        `;
-        indicador.appendChild(barra);
-    }
-    
-    if (input.value.length > 0) {
-        const texto = document.createElement('span');
-        texto.textContent = etiquetas[nivel];
-        texto.style.cssText = `
-            font-size: 0.8rem;
-            color: ${colores[nivel]};
-            font-weight: 600;
-            margin-left: 0.5rem;
-        `;
-        indicador.appendChild(texto);
-    }
 }
 
 /**

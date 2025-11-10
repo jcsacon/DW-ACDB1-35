@@ -17,19 +17,16 @@ $correo = obtenerUsuarioCorreo();
 $rol = obtenerUsuarioRol();
 
 // Obtener estadísticas del usuario
-try {
-    $db = getDB();
-    
-    // Contar total de usuarios (solo si es admin)
-    $totalUsuarios = 0;
-    if (esAdministrador()) {
-        $stmt = $db->query("SELECT COUNT(*) as total FROM usuarios");
-        $result = $stmt->fetch();
-        $totalUsuarios = $result['total'];
+$totalUsuarios = 0;
+if (esAdministrador()) {
+    $conexion = conectarDB();
+    $result = mysqli_query($conexion, "SELECT COUNT(*) as total FROM usuarios");
+    if ($result) {
+        $row = mysqli_fetch_assoc($result);
+        $totalUsuarios = $row['total'];
+    } else {
+        error_log("Error al obtener estadísticas: " . mysqli_error($conexion));
     }
-    
-} catch(PDOException $e) {
-    error_log("Error al obtener estadísticas: " . $e->getMessage());
 }
 ?>
 <!DOCTYPE html>
@@ -112,7 +109,7 @@ try {
                     </div>
                     <div class="card-content">
                         <h3>Correo</h3>
-                        <h5><?php echo htmlspecialchars($correo); ?></h5>
+                        <h5 class="email-text"><?php echo htmlspecialchars($correo); ?></h5>
                         <p class="card-label">Tu email registrado</p>
                     </div>
                 </div>
@@ -176,7 +173,7 @@ try {
             </div>
         </div>
     </div>
-
+    <!-- Llamados de JS para el Dashboard -->
     <script src="../js/config.js"></script>
     <script src="../js/notifications.js"></script>
     <script src="../js/theme.js"></script>

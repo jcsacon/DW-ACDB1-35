@@ -20,8 +20,8 @@ $correo_ingresado = '';
 // --- INICIO: Lógica de control de intentos de login y bloqueo ---
 require_once 'captcha.php';
 
-define('MAX_LOGIN_ATTEMPTS', 5);
-define('LOCKOUT_TIME_SECONDS', 60);
+define('MAX_LOGIN_ATTEMPTS', 5); //intentos maximos antes del bloqueo
+define('LOCKOUT_TIME_SECONDS', 60); //tiempo de bloqueo en segundos
 
 // Función para manejar el fallo de login
 function manejarFalloLogin(&$errores) {
@@ -30,13 +30,14 @@ function manejarFalloLogin(&$errores) {
     } else {
         $_SESSION['login_attempts']++;
     }
-
+    // Verificar si se ha alcanzado el límite de intentos
     if ($_SESSION['login_attempts'] >= MAX_LOGIN_ATTEMPTS) {
         $_SESSION['lockout_time'] = time() + LOCKOUT_TIME_SECONDS;
         $errores[] = "Has excedido el número de intentos. Tu cuenta ha sido bloqueada por " . LOCKOUT_TIME_SECONDS . " segundos.";
         unset($_SESSION['login_attempts']); // Limpiar para el próximo ciclo de bloqueo
         limpiarCaptcha();
     } else {
+        // Calcular intentos restantes
         $intentos_restantes = MAX_LOGIN_ATTEMPTS - $_SESSION['login_attempts'];
         $errores[] = "Credenciales incorrectas. Te quedan {$intentos_restantes} intentos.";
     }
@@ -58,7 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (!isset($_SESSION['lockout_time']) 
         unset($_SESSION['captcha_question']);
         unset($_SESSION['captcha_answer']);
     }
-
+    // Obtener y sanitizar datos
     $correo = sanitizar($_POST['correo'] ?? '');
     $contrasena = $_POST['contrasena'] ?? '';
     $correo_ingresado = $correo;
@@ -77,11 +78,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (!isset($_SESSION['lockout_time']) 
 
     // Si no hay errores de validación, verificar credenciales
     if (empty($errores)) {
-        try {
-            $db = getDB();
-            $stmt = $db->prepare("SELECT id, nombre, correo, contrasena, rol, estado FROM usuarios WHERE correo = ?");
-            $stmt->execute([$correo]);
-            $usuario = $stmt->fetch();
+        $conexion = conectarDB();
+        $correo_escaped = mysqli_real_escape_string($conexion, $correo);
+        
+        $query = "SELECT id, nombre, correo, contrasena, rol, estado FROM usuarios WHERE correo = '$correo_escaped'";
+        $result = mysqli_query($conexion, $query);
+        
+        if (!$result) {
+            error_log("Error en login: " . mysqli_error($conexion));
+            $errores[] = "Error en el servidor. Por favor, intente más tarde.";
+        } else {
+            $usuario = mysqli_fetch_assoc($result);
             
             if ($usuario && $usuario['estado'] === 'activo' && password_verify($contrasena, $usuario['contrasena'])) {
                 // Login exitoso
@@ -97,9 +104,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (!isset($_SESSION['lockout_time']) 
                     manejarFalloLogin($errores);
                 }
             }
-        } catch(PDOException $e) {
-            error_log("Error en login: " . $e->getMessage());
-            $errores[] = "Error en el servidor. Por favor, intente más tarde.";
         }
     }
 }
@@ -108,6 +112,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (!isset($_SESSION['lockout_time']) 
 $mostrar_captcha = debeMostrarCaptcha();
 manejarCaptcha();
 ?>
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -129,7 +134,7 @@ manejarCaptcha();
                 <h1>Sistema de Ingreso</h1>
                 <p>Inicia sesión para acceder al sistema</p>
             </div>
-
+            <! -- Mostrar errores en caso de haberlos en el login -->
             <?php if (!empty($errores)): ?>
                 <div class="alert alert-error">
                     <i class="fas fa-exclamation-circle"></i>
@@ -143,7 +148,7 @@ manejarCaptcha();
                     </div>
                 </div>
             <?php endif; ?>
-
+            <! -- Mostrar formulario de login -->
             <form method="POST" action="" class="auth-form">
                 <div class="form-group">
                     <label for="correo">
@@ -174,7 +179,7 @@ manejarCaptcha();
                         required
                     >
                 </div>
-
+                <! -- Mostrar Captcha si es necesario -->
                 <?php if ($mostrar_captcha): ?>
                 <div class="form-group captcha-group">
                     <label for="captcha">
@@ -206,14 +211,8 @@ manejarCaptcha();
                 <p>¿No tienes cuenta? <a href="auth/register.php">Regístrate aquí</a></p>
             </div>
         </div>
-
-        <div class="auth-decoration">
-            <div class="decoration-circle decoration-circle-1"></div>
-            <div class="decoration-circle decoration-circle-2"></div>
-            <div class="decoration-circle decoration-circle-3"></div>
-        </div>
     </div>
-
+    <! -- Scripts -->
     <script src="js/config.js"></script>
     <script src="js/notifications.js"></script>
     <script src="js/auth.js"></script>

@@ -25,20 +25,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['actualizar_perfil']))
     }
     
     if (empty($errores)) {
-        try {
-            $db = getDB();
-            $stmt = $db->prepare("UPDATE usuarios SET nombre = ? WHERE id = ?");
-            
-            if ($stmt->execute([$nombre, obtenerUsuarioId()])) {
-                $_SESSION['usuario_nombre'] = $nombre;
-                $usuario['nombre'] = $nombre;
-                $exito = true;
-            } else {
-                $errores[] = "Error al actualizar el perfil";
-            }
-        } catch(PDOException $e) {
-            error_log("Error al actualizar perfil: " . $e->getMessage());
-            $errores[] = "Error en el servidor";
+        $conexion = conectarDB();
+        
+        $nombre_escaped = mysqli_real_escape_string($conexion, $nombre);
+        $usuarioId = obtenerUsuarioId();
+        $usuarioId_escaped = mysqli_real_escape_string($conexion, $usuarioId);
+        
+        $query = "UPDATE usuarios SET nombre = '$nombre_escaped' WHERE id = '$usuarioId_escaped'";
+        if (mysqli_query($conexion, $query)) {
+            $_SESSION['usuario_nombre'] = $nombre;
+            $usuario['nombre'] = $nombre;
+            $exito = true;
+        } else {
+            error_log("Error al actualizar perfil: " . mysqli_error($conn));
+            $errores[] = "Error al actualizar el perfil";
         }
     }
 }
@@ -56,31 +56,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cambiar_contrasena'])
     } elseif ($contrasena_nueva !== $confirmar_nueva) {
         $errores[] = "Las contraseñas nuevas no coinciden";
     } else {
-        try {
-            $db = getDB();
-            $stmt = $db->prepare("SELECT contrasena FROM usuarios WHERE id = ?");
-            $stmt->execute([obtenerUsuarioId()]);
-            $usuario_db = $stmt->fetch();
+        $conexion = conectarDB();
+        
+        $usuarioId = obtenerUsuarioId();
+        $usuarioId_escaped = mysqli_real_escape_string($conexion, $usuarioId);
+        
+        $query = "SELECT contrasena FROM usuarios WHERE id = '$usuarioId_escaped'";
+        $result = mysqli_query($conexion, $query);
+        
+        if (!$result) {
+            error_log("Error al verificar contraseña: " . mysqli_error($conexion));
+            $errores[] = "Error en el servidor";
+        } else {
+            $usuario_db = mysqli_fetch_assoc($result);
             
             if (password_verify($contrasena_actual, $usuario_db['contrasena'])) {
-                $contrasena_hash = password_hash($contrasena_nueva, HASH_ALGORITHM, ['cost' => HASH_COST]);
-                $stmt = $db->prepare("UPDATE usuarios SET contrasena = ? WHERE id = ?");
+                $contrasena_hash = password_hash($contrasena_nueva, PASSWORD_DEFAULT);
+                $contrasena_hash_escaped = mysqli_real_escape_string($conexion, $contrasena_hash);
                 
-                if ($stmt->execute([$contrasena_hash, obtenerUsuarioId()])) {
+                $query = "UPDATE usuarios SET contrasena = '$contrasena_hash_escaped' WHERE id = '$usuarioId_escaped'";
+                if (mysqli_query($conexion, $query)) {
                     $exito = true;
                 } else {
+                    error_log("Error al cambiar contraseña: " . mysqli_error($conexion));
                     $errores[] = "Error al cambiar la contraseña";
                 }
             } else {
                 $errores[] = "La contraseña actual es incorrecta";
             }
-        } catch(PDOException $e) {
-            error_log("Error al cambiar contraseña: " . $e->getMessage());
-            $errores[] = "Error en el servidor";
         }
     }
 }
 ?>
+<!-- inicio del html -->
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -255,7 +263,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cambiar_contrasena'])
             </div>
         </div>
     </div>
-
+    <!-- llamados de js para el dashboard -->
     <script src="../js/config.js"></script>
     <script src="../js/notifications.js"></script>
     <script src="../js/theme.js"></script>
