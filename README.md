@@ -66,7 +66,16 @@ La estructura del sistema es la siguiente:
    - Iniciar servicios de Apache y MySQL en XAMPP
    - Acceder a phpMyAdmin (http://localhost/phpmyadmin)
    - Crear una nueva base de datos llamada 'portafolio_db'
-   - Importar el archivo `database.sql`
+   - Importar el archivo `database.sql` para crear la tabla `usuarios` y el usuario administrador por defecto.
+
+4. **Creación de Usuario MySQL (Recomendado):**
+   - El sistema está configurado para usar un usuario MySQL con privilegios limitados llamado `sacon` por seguridad.
+   - En phpMyAdmin, ve a "Cuentas de usuario" > "Agregar cuenta de usuario".
+   - **Nombre de usuario:** `sacon`
+   - **Host:** `localhost`
+   - **Contraseña:** `D3s4roll0w3b`
+   - Otorga los privilegios `SELECT`, `INSERT`, `UPDATE`, `DELETE` sobre la base de datos `portafolio_db`.
+   - Si prefiere usar otro usuario (como `root`), deberá actualizar las credenciales en archivo`/config/database.php`.
 
 3. **Instalación del Sistema:**
    - Clonar o descargar el repositorio
