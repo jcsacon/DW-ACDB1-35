@@ -5,9 +5,18 @@
 
 // Configuración de la base de datos
 define('DB_HOST', 'localhost');
-define('DB_NAME', 'portafolio_db');
-define('DB_USER', 'root');
-define('DB_PASS', '');
+define('DB_NAME', 'portafolio_db');// Nombre de la base de datos
+
+// Usuario MySQL para el Sistema de Login: 'sacon'
+// Este usuario tiene privilegios limitados CRUD (SELECT, INSERT, UPDATE, DELETE)
+// sobre la base de datos 'portafolio_db'
+// NO tiene privilegios para crear, modificar o eliminar tablas.
+define('DB_USER', 'sacon');// Usuario MySQL con privilegios limitados
+define('DB_PASS', 'D3s4roll0w3b'); // Contraseña del usuario MySQL
+
+/**
+ * Configuración de Sesiones
+ */
 
 // Configuración de sesiones
 define('SESSION_LIFETIME', 300); // 5 minutos en segundos
