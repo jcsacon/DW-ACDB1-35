@@ -77,9 +77,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Mostrar/ocultar contraseña
     agregarTogglePassword();
-
-    // Animación de círculos decorativos
-    animarCirculosDecorativos();
 });
 
 /**
