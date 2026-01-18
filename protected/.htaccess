@@ -1,0 +1,43 @@
+# ============================================================
+# ARCHIVO .htaccess - Carpeta Protected
+# Protección con contraseña usando autenticación básica HTTP
+# ============================================================
+
+# ------------------------------------------------------------
+# AUTENTICACIÓN BÁSICA HTTP
+# ------------------------------------------------------------
+# Tipo de autenticación: Basic (usuario y contraseña)
+AuthType Basic
+
+# Mensaje que aparece en el cuadro de diálogo de login
+AuthName "Area Restringida - Ingrese sus credenciales"
+
+# Ruta al archivo .htpasswd que contiene los usuarios y contraseñas
+AuthUserFile "C:/xampp/htdocs/acceso/protected/.htpasswd"
+
+# Solo usuarios válidos pueden acceder
+Require valid-user
+
+# ------------------------------------------------------------
+# SEGURIDAD ADICIONAL
+# ------------------------------------------------------------
+# Proteger el archivo .htpasswd de acceso directo
+<FilesMatch "^\.htpasswd$">
+    Require all denied
+</FilesMatch>
+
+# Proteger el archivo .htaccess
+<FilesMatch "^\.htaccess$">
+    Require all denied
+</FilesMatch>
+
+# ============================================================
+# NOTAS IMPORTANTES:
+# ============================================================
+# 1. El archivo .htpasswd debe existir en la ruta especificada
+# 2. Las contraseñas en .htpasswd deben estar encriptadas
+# 3. Para generar contraseñas encriptadas puedes usar:
+#    - Herramienta htpasswd de Apache
+#    - Generadores online de htpasswd
+# 4. En producción, coloca .htpasswd FUERA de htdocs por seguridad
+# ============================================================

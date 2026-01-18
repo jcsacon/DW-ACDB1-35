@@ -1,0 +1,178 @@
+# ============================================================
+# ARCHIVO .htaccess - Sistema de Control de Acceso
+# Dominio: dwjcsacon.com
+# Configuración del servidor Apache para el proyecto "acceso"
+# ============================================================
+
+# ------------------------------------------------------------
+# 1. HABILITAR EL MOTOR DE REESCRITURA (mod_rewrite)
+# ------------------------------------------------------------
+# Esta directiva activa el módulo de reescritura de URLs
+# Necesario para URLs amigables y redirecciones
+RewriteEngine On
+
+# Define la base de reescritura (raíz del dominio)
+RewriteBase /
+
+# ------------------------------------------------------------
+# 2. REDIRECCIÓN DE HTTP A HTTPS (Forzar conexión segura)
+# ------------------------------------------------------------
+# Detecta si la conexión NO es HTTPS y redirige automáticamente
+# NOTA: En localhost sin certificado SSL, estas líneas están comentadas
+# Descomentar en producción cuando tengas certificado SSL
+
+RewriteCond %{HTTPS} off
+RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+# Alternativa usando la variable del servidor:
+# RewriteCond %{SERVER_PORT} 80
+# RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+# ------------------------------------------------------------
+# 3. PÁGINAS DE ERROR PERSONALIZADAS
+# ------------------------------------------------------------
+# Redirige los errores HTTP a páginas personalizadas
+# Error 404: Página no encontrada
+ErrorDocument 404 /errors/404.php
+
+# Error 403: Acceso prohibido
+ErrorDocument 403 /errors/403.php
+
+# Error 500: Error interno del servidor
+ErrorDocument 500 /errors/500.php
+
+# ------------------------------------------------------------
+# 4. URLS AMIGABLES (Reescritura de URLs)
+# ------------------------------------------------------------
+# Transforma URLs limpias en rutas PHP reales
+# El usuario ve: dwjcsacon.com/dashboard
+# El servidor procesa: dwjcsacon.com/protected/dashboard.php
+
+# Condición: Solo reescribir si NO es un archivo real
+RewriteCond %{REQUEST_FILENAME} !-f
+# Condición: Solo reescribir si NO es un directorio real
+RewriteCond %{REQUEST_FILENAME} !-d
+
+# Regla 1: Dashboard principal
+# URL: dwjcsacon.com/dashboard → protected/dashboard.php
+RewriteRule ^dashboard/?$ protected/dashboard.php [L,NC]
+
+# Regla 2: Panel de administración
+# URL: dwjcsacon.com/admin → protected/admin.php
+RewriteRule ^admin/?$ protected/admin.php [L,NC]
+
+# Regla 3: Perfil de usuario con ID
+# URL: dwjcsacon.com/perfil/5 → protected/profile.php?id=5
+RewriteRule ^perfil/([0-9]+)/?$ protected/profile.php?id=$1 [L,NC,QSA]
+
+# Regla 4: Perfil sin ID (perfil propio)
+# URL: dwjcsacon.com/perfil → protected/profile.php
+RewriteRule ^perfil/?$ protected/profile.php [L,NC]
+
+# Regla 5: Registro de usuarios
+# URL: dwjcsacon.com/registro → auth/register.php
+RewriteRule ^registro/?$ auth/register.php [L,NC]
+
+# Regla 6: Cerrar sesión
+# URL: dwjcsacon.com/salir → auth/logout.php
+RewriteRule ^salir/?$ auth/logout.php [L,NC]
+
+# Regla 7: Login (página principal)
+# URL: dwjcsacon.com/login → index.php
+RewriteRule ^login/?$ index.php [L,NC]
+
+# ------------------------------------------------------------
+# 5. SEGURIDAD - PROTECCIÓN DE ARCHIVOS SENSIBLES
+# ------------------------------------------------------------
+# Bloquea el acceso directo a archivos de configuración
+
+# Proteger archivos .htaccess y .htpasswd
+<FilesMatch "^\.ht">
+    # Apache 2.4+
+    Require all denied
+</FilesMatch>
+
+# Proteger archivos de configuración PHP
+<FilesMatch "^(database|config|sesion)\.php$">
+    Require all denied
+</FilesMatch>
+
+# Proteger archivo SQL
+<FilesMatch "\.sql$">
+    Require all denied
+</FilesMatch>
+
+# ------------------------------------------------------------
+# 6. SEGURIDAD - CABECERAS HTTP
+# ------------------------------------------------------------
+# Añade cabeceras de seguridad para proteger contra ataques comunes
+
+<IfModule mod_headers.c>
+    # Prevenir ataques XSS (Cross-Site Scripting)
+    Header set X-XSS-Protection "1; mode=block"
+    
+    # Prevenir que el navegador detecte el tipo MIME incorrectamente
+    Header set X-Content-Type-Options "nosniff"
+    
+    # Prevenir clickjacking (ataques de iframe)
+    Header set X-Frame-Options "SAMEORIGIN"
+    
+    # Política de referencia para privacidad
+    Header set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
+
+# ------------------------------------------------------------
+# 7. CONFIGURACIÓN DE COOKIES SEGURAS
+# ------------------------------------------------------------
+# Mejora la seguridad de las cookies de sesión
+
+<IfModule mod_headers.c>
+    # Añadir atributos de seguridad a las cookies
+    # HttpOnly: Previene acceso desde JavaScript
+    # Secure: Solo enviar por HTTPS (descomentar en producción)
+    # SameSite: Previene ataques CSRF
+    Header edit Set-Cookie ^(.*)$ "$1; HttpOnly; SameSite=Strict"
+    
+    # En producción con HTTPS, usar:
+    # Header edit Set-Cookie ^(.*)$ "$1; HttpOnly; Secure; SameSite=Strict"
+</IfModule>
+
+# ------------------------------------------------------------
+# 8. OPTIMIZACIÓN Y CACHÉ
+# ------------------------------------------------------------
+# Configura el caché del navegador para mejorar rendimiento
+
+<IfModule mod_expires.c>
+    ExpiresActive On
+    
+    # Imágenes: caché por 1 mes
+    ExpiresByType image/jpeg "access plus 1 month"
+    ExpiresByType image/png "access plus 1 month"
+    ExpiresByType image/gif "access plus 1 month"
+    ExpiresByType image/svg+xml "access plus 1 month"
+    
+    # CSS y JavaScript: caché por 1 semana
+    ExpiresByType text/css "access plus 1 week"
+    ExpiresByType application/javascript "access plus 1 week"
+    
+    # HTML: sin caché (siempre fresco)
+    ExpiresByType text/html "access plus 0 seconds"
+</IfModule>
+
+# ------------------------------------------------------------
+# 9. PREVENCIÓN DE LISTADO DE DIRECTORIOS
+# ------------------------------------------------------------
+# Evita que se muestren los archivos de una carpeta sin index
+
+Options -Indexes
+
+# ------------------------------------------------------------
+# 10. CONFIGURACIÓN DE CHARSET
+# ------------------------------------------------------------
+# Define la codificación de caracteres por defecto
+
+AddDefaultCharset UTF-8
+
+# ============================================================
+# FIN DE LA CONFIGURACIÓN
+# ============================================================
